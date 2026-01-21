@@ -9,7 +9,6 @@ export default function Layout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
@@ -36,12 +35,10 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
         {children}
       </main>
 
-      {/* AI Chat Button */}
       <button
         onClick={toggleChat}
         className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors z-40"
@@ -49,7 +46,6 @@ export default function Layout({ children }) {
         <MessageCircle className="w-6 h-6" />
       </button>
 
-      {/* AI Chat Sidebar */}
       {chatOpen && <AIChatSidebar />}
     </div>
   );

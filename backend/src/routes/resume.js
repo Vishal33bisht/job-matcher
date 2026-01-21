@@ -1,67 +1,54 @@
+import pdfParse from 'pdf-parse';
 import { parseResume } from '../services/aiService.js';
 
-export default async function resumeRoutes(fastify) {
-  // Upload resume
+export default async function resumeRoutes(fastify, options) {
+ 
+
   fastify.post('/upload/:userId', async (request, reply) => {
     const { userId } = request.params;
     
+    
+    const data = await request.file();
+    
+    if (!data) {
+      return reply.code(400).send({ error: 'No file uploaded' });
+    }
+
     try {
-      const data = await request.file();
       const buffer = await data.toBuffer();
-      
-      let text = '';
-      
+      let resumeText = '';
+
       if (data.mimetype === 'application/pdf') {
-        // Dynamic import for pdf-parse
-        const pdfParse = (await import('pdf-parse')).default;
         const pdfData = await pdfParse(buffer);
-        text = pdfData.text;
-      } else if (data.mimetype === 'text/plain') {
-        text = buffer.toString('utf-8');
+        resumeText = pdfData.text;
       } else {
-        return reply.status(400).send({ error: 'Only PDF and TXT files are supported' });
+        resumeText = buffer.toString('utf-8');
       }
-      
-      // Parse resume with AI
-      const parsedData = await parseResume(text);
-      
-      const resumeRecord = {
-        text,
-        fileName: data.filename,
+
+      const parsedData = await parseResume(resumeText);
+
+      await fastify.redis.set(`resume:${userId}`, JSON.stringify({
+        ...parsedData,
+        rawText: resumeText,
         uploadedAt: new Date().toISOString(),
-        parsed: parsedData
-      };
-      
-      await fastify.redis.set(`resume:${userId}`, JSON.stringify(resumeRecord));
-      
-      return { 
-        message: 'Resume uploaded successfully',
-        parsed: parsedData
-      };
+        fileName: data.filename
+      }));
+
+      return { success: true, data: parsedData };
     } catch (error) {
-      console.error('Resume upload error:', error);
-      reply.status(500).send({ error: 'Failed to upload resume' });
+      request.log.error(error);
+      return reply.code(500).send({ error: 'Failed to process resume' });
     }
   });
 
-  // Get resume
   fastify.get('/:userId', async (request, reply) => {
     const { userId } = request.params;
     
-    const resumeData = await fastify.redis.get(`resume:${userId}`);
+    const data = await fastify.redis.get(`resume:${userId}`);
     
-    if (!resumeData) {
-      return reply.status(404).send({ error: 'No resume found' });
+    if (!data) {
+      return reply.code(404).send({ error: 'Resume not found' });
     }
-    
-    const resume = typeof resumeData === 'string' ? JSON.parse(resumeData) : resumeData;
-    return resume;
-  });
-
-  // Delete resume
-  fastify.delete('/:userId', async (request, reply) => {
-    const { userId } = request.params;
-    await fastify.redis.del(`resume:${userId}`);
-    return { message: 'Resume deleted successfully' };
+    return typeof data === 'string' ? JSON.parse(data) : data;
   });
 }

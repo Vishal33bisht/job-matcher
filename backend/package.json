@@ -16,7 +16,7 @@
     "fastify": "^4.26.0",
     "fastify-plugin": "^5.1.0",
     "openai": "^4.28.0",
-    "pdf-parse": "^1.1.1",
+    "pdf-parse": "^1.1.4",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

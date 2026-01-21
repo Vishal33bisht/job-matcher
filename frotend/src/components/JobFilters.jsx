@@ -1,130 +1,138 @@
-import { Search, X } from 'lucide-react';
+import { Search, X, Filter } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
-const SKILL_OPTIONS = [
-  'JavaScript', 'React', 'Node.js', 'Python', 'Java', 'TypeScript',
-  'AWS', 'Docker', 'SQL', 'MongoDB', 'Vue.js', 'Angular', 'Figma'
+const SKILL_OPTIONS = ['React', 'Node.js', 'Python', 'TypeScript', 'Tailwind', 'AWS', 'Figma'];
+const JOB_TYPES = ['Full-time', 'Part-time', 'Contract', 'Internship'];
+const WORK_MODES = ['Remote', 'Hybrid', 'On-site'];
+const MATCH_SCORES = [
+  { label: 'All Match Scores', value: '0' },
+  { label: 'High (> 70%)', value: '70' },
+  { label: 'Medium (40-70%)', value: '40' },
 ];
 
 export default function JobFilters() {
-  const { filters, setFilters } = useStore();
+  const { filters, setFilters, fetchJobs } = useStore();
 
-  const handleSkillToggle = (skill) => {
-    const newSkills = filters.skills.includes(skill)
-      ? filters.skills.filter(s => s !== skill)
-      : [...filters.skills, skill];
-    setFilters({ skills: newSkills });
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchJobs();
   };
 
-  const clearFilters = () => {
-    setFilters({
-      query: '',
-      location: '',
-      jobType: '',
-      workMode: '',
-      datePosted: '',
-      skills: [],
-      minMatchScore: 0
-    });
+  const updateFilter = (key, value) => {
+    setFilters({ [key]: value });
+  };
+
+  const toggleSkill = (skill) => {
+    const currentSkills = filters.skills || [];
+    const newSkills = currentSkills.includes(skill)
+      ? currentSkills.filter(s => s !== skill)
+      : [...currentSkills, skill];
+    updateFilter('skills', newSkills);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-      {/* Search */}
-      <div className="flex gap-4 mb-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
+      <form onSubmit={handleSearch} className="space-y-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search job titles..."
+            placeholder="Search jobs by title, company, or keywords..."
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             value={filters.query}
-            onChange={(e) => setFilters({ query: e.target.value })}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onChange={(e) => updateFilter('query', e.target.value)}
           />
         </div>
-        <input
-          type="text"
-          placeholder="Location"
-          value={filters.location}
-          onChange={(e) => setFilters({ location: e.target.value })}
-          className="w-48 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
 
-      {/* Filter Row */}
-      <div className="flex flex-wrap gap-4 mb-4">
-        <select
-          value={filters.jobType}
-          onChange={(e) => setFilters({ jobType: e.target.value })}
-          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Job Type</option>
-          <option value="full-time">Full-time</option>
-          <option value="part-time">Part-time</option>
-          <option value="contract">Contract</option>
-          <option value="internship">Internship</option>
-        </select>
-
-        <select
-          value={filters.workMode}
-          onChange={(e) => setFilters({ workMode: e.target.value })}
-          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Work Mode</option>
-          <option value="remote">Remote</option>
-          <option value="hybrid">Hybrid</option>
-          <option value="onsite">On-site</option>
-        </select>
-
-        <select
-          value={filters.datePosted}
-          onChange={(e) => setFilters({ datePosted: e.target.value })}
-          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Date Posted</option>
-          <option value="today">Last 24 hours</option>
-          <option value="week">Last week</option>
-          <option value="month">Last month</option>
-        </select>
-
-        <select
-          value={filters.minMatchScore}
-          onChange={(e) => setFilters({ minMatchScore: parseInt(e.target.value) })}
-          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="0">Match Score</option>
-          <option value="70">High (&gt;70%)</option>
-          <option value="40">Medium (&gt;40%)</option>
-        </select>
-
-        <button
-          onClick={clearFilters}
-          className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-gray-900"
-        >
-          <X className="w-4 h-4" />
-          Clear
-        </button>
-      </div>
-
-      {/* Skills */}
-      <div>
-        <p className="text-sm text-gray-600 mb-2">Skills:</p>
-        <div className="flex flex-wrap gap-2">
-          {SKILL_OPTIONS.map((skill) => (
-            <button
-              key={skill}
-              onClick={() => handleSkillToggle(skill)}
-              className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                filters.skills.includes(skill)
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Match Score Filter (Required by Assignment) */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Match Score</label>
+            <select
+              className="w-full p-2 border rounded-lg bg-white"
+              value={filters.minMatchScore}
+              onChange={(e) => updateFilter('minMatchScore', Number(e.target.value))}
             >
-              {skill}
-            </button>
-          ))}
+              {MATCH_SCORES.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Location</label>
+            <input
+              type="text"
+              placeholder="City or Region"
+              className="w-full p-2 border rounded-lg"
+              value={filters.location}
+              onChange={(e) => updateFilter('location', e.target.value)}
+            />
+          </div>
+
+          {/* Job Type */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Job Type</label>
+            <select
+              className="w-full p-2 border rounded-lg bg-white"
+              value={filters.jobType}
+              onChange={(e) => updateFilter('jobType', e.target.value)}
+            >
+              <option value="">Any Job Type</option>
+              {JOB_TYPES.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Work Mode */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Work Mode</label>
+            <select
+              className="w-full p-2 border rounded-lg bg-white"
+              value={filters.workMode}
+              onChange={(e) => updateFilter('workMode', e.target.value)}
+            >
+              <option value="">Any Work Mode</option>
+              {WORK_MODES.map(mode => (
+                <option key={mode} value={mode}>{mode}</option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+
+        {/* Skills Tags */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 mb-2 block">Popular Skills</label>
+          <div className="flex flex-wrap gap-2">
+            {SKILL_OPTIONS.map(skill => (
+              <button
+                key={skill}
+                type="button"
+                onClick={() => toggleSkill(skill)}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  filters.skills?.includes(skill)
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {skill}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

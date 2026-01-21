@@ -3,7 +3,15 @@ import api from '../services/api';
 
 export const useStore = create((set, get) => ({
   // User
+  userId: localStorage.getItem('job_matcher_userid') || null,
+  userName: localStorage.getItem('job_matcher_username') || null,
   userId: localStorage.getItem('userId') || `user_${Date.now()}`,
+  
+  setUserId: (id, name) => {
+    localStorage.setItem('job_matcher_userid', id);
+    localStorage.setItem('job_matcher_username', name);
+    set({ userId: id, userName: name });
+  },
   
   // Resume
   hasResume: false,
