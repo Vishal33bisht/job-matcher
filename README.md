@@ -110,10 +110,12 @@ git clone [https://github.com/Vishal33bisht/job-matcher.git](https://github.com/
 cd job-matcher
 2. Backend Setup
 Bash
+
 cd backend
+
 npm install
 
-# Create a .env file with the following:
+Create a .env file with the following:
 # PORT=3001
 # GEMINI_API_KEY=your_gemini_key
 # RAPIDAPI_KEY=your_rapidapi_key
@@ -122,7 +124,7 @@ npm install
 
 npm run dev
 
-3. Frontend Setup
+3.Frontend Setup
 Bash 
 
 cd ../frontend
