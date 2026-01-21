@@ -18,6 +18,7 @@ graph TD
     Backend -->|AI Analysis| Gemini[Google Gemini AI]
     Backend -->|Cache/Store| Redis[Upstash Redis]
     Backend -->|Uploads| Parser[PDF Parser]
+
 Data Flow:
 
 User Interaction: User uploads a resume (PDF) and sets filters on the Frontend.
