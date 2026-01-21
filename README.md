@@ -110,29 +110,25 @@ git clone [https://github.com/Vishal33bisht/job-matcher.git](https://github.com/
 cd job-matcher
 
 2. Backend Setup
-Bash
-
 cd backend
-
 npm install
-npm run dev
-Create a .env file with the following:
+
+# Create a .env file with the following:
 # PORT=3001
 # GEMINI_API_KEY=your_gemini_key
 # RAPIDAPI_KEY=your_rapidapi_key
 # UPSTASH_REDIS_URL=your_redis_url
 # UPSTASH_REDIS_TOKEN=your_redis_token
 
+npm run dev
+
 3. Frontend Setup
-Bash 
-
 cd ../frontend
-
 npm install
-
 
 # Create a .env file (optional for local dev):
 # VITE_API_URL=http://localhost:3001/api
 
 npm run dev
+
 The application will be available at http://localhost:5173.
