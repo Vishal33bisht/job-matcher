@@ -110,7 +110,9 @@ git clone [https://github.com/Vishal33bisht/job-matcher.git](https://github.com/
 cd job-matcher
 
 2. Backend Setup
+
 cd backend
+
 npm install
 
 # Create a .env file with the following:
@@ -123,7 +125,9 @@ npm install
 npm run dev
 
 3. Frontend Setup
+
 cd ../frontend
+
 npm install
 
 # Create a .env file (optional for local dev):
