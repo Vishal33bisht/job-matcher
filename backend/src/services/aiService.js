@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'; 
 
-// Create OpenAI client only if API key exists
+// Create Gemini client only if API key exists
 let genAI = null;
 
 function getGeminiClient() {
@@ -9,6 +9,12 @@ function getGeminiClient() {
   }
   return genAI;
 }
+
+// Helper to clean JSON string from Markdown
+function cleanJsonString(text) {
+  return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+}
+
 export async function calculateMatchScore(resumeText, job) {
   const client = getGeminiClient();
   
@@ -45,8 +51,7 @@ export async function calculateMatchScore(resumeText, job) {
     const response = await result.response;
     const text = response.text();
     
-    // Clean up response (remove markdown if any)
-    const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const jsonStr = cleanJsonString(text);
     return JSON.parse(jsonStr);
   } catch (error) {
     console.error('AI scoring error:', error);
@@ -73,7 +78,7 @@ function getMockMatchScore(resumeText, job) {
 
 export async function chatWithAssistant(message, context) {
   const { jobs = [], applications = [], resumeText = '' } = context;
-  const client = getOpenAIClient();
+  const client = getGeminiClient(); // CHANGED: Use Gemini instead of OpenAI
 
   // If no API key, return mock response
   if (!client) {
@@ -99,14 +104,14 @@ export async function chatWithAssistant(message, context) {
     matchScore: j.matchScore
   })))}
   
-  When users ask to find/filter jobs, respond with:
+  When users ask to find/filter jobs, respond with this JSON format only:
   {
     "type": "job_filter",
     "filters": { "query": "", "location": "", "workMode": "", "minScore": 0 },
     "message": "Your explanation"
   }
   
-  For general questions, respond with:
+  For general questions, respond with this JSON format only:
   {
     "type": "text",
     "message": "Your response"
@@ -114,21 +119,20 @@ export async function chatWithAssistant(message, context) {
   `;
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message }
-      ],
-      temperature: 0.7,
-      max_tokens: 800
-    });
+    const model = client.getGenerativeModel({ model: 'gemini-pro' });
+    // Combine system prompt and user message for Gemini
+    const prompt = `${systemPrompt}\n\nUSER QUERY: ${message}`;
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
 
-    const content = response.choices[0].message.content;
+    const jsonStr = cleanJsonString(text);
+    
     try {
-      return JSON.parse(content);
+      return JSON.parse(jsonStr);
     } catch {
-      return { type: 'text', message: content };
+      return { type: 'text', message: text };
     }
   } catch (error) {
     console.error('Chat error:', error);
@@ -207,18 +211,16 @@ function getMockChatResponse(message, jobs) {
 }
 
 export async function parseResume(text) {
-  const client = getOpenAIClient();
+  const client = getGeminiClient(); // CHANGED: Use Gemini instead of OpenAI
   
   if (!client) {
     return getMockParsedResume(text);
   }
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{
-        role: 'user',
-        content: `Extract key information from this resume. Return JSON:
+    const model = client.getGenerativeModel({ model: 'gemini-pro' });
+    
+    const prompt = `Extract key information from this resume. Return JSON only (no markdown):
         {
           "name": "",
           "email": "",
@@ -228,13 +230,16 @@ export async function parseResume(text) {
           "summary": ""
         }
         
-        Resume: ${text.substring(0, 3000)}`
-      }],
-      temperature: 0.3
-    });
+        Resume: ${text.substring(0, 3000)}`;
 
-    return JSON.parse(response.choices[0].message.content);
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const textResponse = response.text();
+
+    const jsonStr = cleanJsonString(textResponse);
+    return JSON.parse(jsonStr);
   } catch (error) {
+    console.error('Resume parsing error:', error);
     return getMockParsedResume(text);
   }
 }
