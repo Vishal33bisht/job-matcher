@@ -121,9 +121,12 @@ npm install
 # UPSTASH_REDIS_TOKEN=your_redis_token
 
 npm run dev
+
 3. Frontend Setup
-Bash
+Bash 
+
 cd ../frontend
+
 npm install
 
 # Create a .env file (optional for local dev):
