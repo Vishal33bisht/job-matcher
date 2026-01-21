@@ -123,7 +123,7 @@ npm install
 npm run dev
 3. Frontend Setup
 Bash
-cd ../frotend
+cd ../frontend
 npm install
 
 # Create a .env file (optional for local dev):
