@@ -2,21 +2,18 @@ import { fetchJobs } from '../services/jobService.js';
 import { calculateMatchScore } from '../services/aiService.js';
 
 export default async function jobRoutes(fastify) {
-  // Get all jobs with filters
   fastify.get('/', async (request, reply) => {
     const { userId, ...filters } = request.query;
     
     try {
       let jobs = await fetchJobs(filters);
-      
-      // Get user's resume for matching
+
       if (userId) {
         const resumeData = await fastify.redis.get(`resume:${userId}`);
         
         if (resumeData) {
           const resume = typeof resumeData === 'string' ? JSON.parse(resumeData) : resumeData;
           
-          // Calculate match scores for all jobs
           const jobsWithScores = await Promise.all(
             jobs.map(async (job) => {
               const matchData = await calculateMatchScore(resume.text, job);
@@ -33,8 +30,7 @@ export default async function jobRoutes(fastify) {
           jobs = jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
         }
       }
-      
-      // Apply match score filter
+
       if (filters.minMatchScore) {
         jobs = jobs.filter(job => job.matchScore >= parseInt(filters.minMatchScore));
       }
@@ -46,7 +42,6 @@ export default async function jobRoutes(fastify) {
     }
   });
 
-  // Get single job
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params;
     const jobs = await fetchJobs({});
@@ -59,7 +54,6 @@ export default async function jobRoutes(fastify) {
     return job;
   });
 
-  // Get best matches
   fastify.get('/best-matches/:userId', async (request, reply) => {
     const { userId } = request.params;
     

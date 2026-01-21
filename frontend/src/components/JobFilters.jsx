@@ -1,4 +1,4 @@
-import { Search, X, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 const SKILL_OPTIONS = ['React', 'Node.js', 'Python', 'TypeScript', 'Tailwind', 'AWS', 'Figma'];
@@ -8,6 +8,13 @@ const MATCH_SCORES = [
   { label: 'All Match Scores', value: '0' },
   { label: 'High (> 70%)', value: '70' },
   { label: 'Medium (40-70%)', value: '40' },
+];
+// New Date Options
+const DATE_POSTED_OPTIONS = [
+  { label: 'Any time', value: '' },
+  { label: 'Last 24 hours', value: '24h' },
+  { label: 'Last week', value: '7d' },
+  { label: 'Last month', value: '30d' },
 ];
 
 export default function JobFilters() {
@@ -45,12 +52,12 @@ export default function JobFilters() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Match Score Filter (Required by Assignment) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Match Score */}
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Match Score</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Match Score</label>
             <select
-              className="w-full p-2 border rounded-lg bg-white"
+              className="w-full p-2 border rounded-lg bg-white text-sm"
               value={filters.minMatchScore}
               onChange={(e) => updateFilter('minMatchScore', Number(e.target.value))}
             >
@@ -60,23 +67,25 @@ export default function JobFilters() {
             </select>
           </div>
 
-          {/* Location */}
+          {/* Date Posted (NEW) */}
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Location</label>
-            <input
-              type="text"
-              placeholder="City or Region"
-              className="w-full p-2 border rounded-lg"
-              value={filters.location}
-              onChange={(e) => updateFilter('location', e.target.value)}
-            />
+            <label className="text-xs font-semibold text-gray-500 uppercase">Date Posted</label>
+            <select
+              className="w-full p-2 border rounded-lg bg-white text-sm"
+              value={filters.datePosted}
+              onChange={(e) => updateFilter('datePosted', e.target.value)}
+            >
+              {DATE_POSTED_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Job Type */}
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Job Type</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Job Type</label>
             <select
-              className="w-full p-2 border rounded-lg bg-white"
+              className="w-full p-2 border rounded-lg bg-white text-sm"
               value={filters.jobType}
               onChange={(e) => updateFilter('jobType', e.target.value)}
             >
@@ -89,9 +98,9 @@ export default function JobFilters() {
 
           {/* Work Mode */}
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Work Mode</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Work Mode</label>
             <select
-              className="w-full p-2 border rounded-lg bg-white"
+              className="w-full p-2 border rounded-lg bg-white text-sm"
               value={filters.workMode}
               onChange={(e) => updateFilter('workMode', e.target.value)}
             >
@@ -101,18 +110,30 @@ export default function JobFilters() {
               ))}
             </select>
           </div>
+
+           {/* Location */}
+           <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-500 uppercase">Location</label>
+            <input
+              type="text"
+              placeholder="City..."
+              className="w-full p-2 border rounded-lg text-sm"
+              value={filters.location}
+              onChange={(e) => updateFilter('location', e.target.value)}
+            />
+          </div>
         </div>
 
         {/* Skills Tags */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Popular Skills</label>
+          <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Popular Skills</label>
           <div className="flex flex-wrap gap-2">
             {SKILL_OPTIONS.map(skill => (
               <button
                 key={skill}
                 type="button"
                 onClick={() => toggleSkill(skill)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   filters.skills?.includes(skill)
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -127,7 +148,7 @@ export default function JobFilters() {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors text-sm"
           >
             Apply Filters
           </button>

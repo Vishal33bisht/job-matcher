@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'; 
 
-// Create Gemini client only if API key exists
 let genAI = null;
 
 function getGeminiClient() {
@@ -10,7 +9,6 @@ function getGeminiClient() {
   return genAI;
 }
 
-// Helper to clean JSON string from Markdown
 function cleanJsonString(text) {
   return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 }
@@ -65,22 +63,30 @@ function getMockMatchScore(resumeText, job) {
     resumeLower.includes(skill.toLowerCase())
   ) || [];
   
-  const score = Math.min(95, Math.max(20, matchedSkills.length * 15 + Math.floor(Math.random() * 20)));
+  // FIX: Generate a random base score between 30 and 60
+  const randomBase = 30 + Math.floor(Math.random() * 30);
+  
+  // Add 10 points for every matching skill
+  const skillBonus = matchedSkills.length * 10;
+
+  // Calculate total (capped at 98%)
+  const score = Math.min(98, randomBase + skillBonus);
   
   return {
     score,
     matchedSkills,
     missingSkills: job.skills?.filter(s => !matchedSkills.includes(s)) || [],
-    experienceMatch: score > 70 ? 'strong' : score > 40 ? 'moderate' : 'weak',
-    summary: `Match based on ${matchedSkills.length} matching skills`
+    experienceMatch: score > 75 ? 'strong' : score > 50 ? 'moderate' : 'weak',
+    summary: matchedSkills.length > 0 
+      ? `Match increased by ${matchedSkills.length} matching skills.` 
+      : 'Base match score based on general profile alignment.'
   };
 }
 
 export async function chatWithAssistant(message, context) {
   const { jobs = [], applications = [], resumeText = '' } = context;
-  const client = getGeminiClient(); // CHANGED: Use Gemini instead of OpenAI
+  const client = getGeminiClient(); 
 
-  // If no API key, return mock response
   if (!client) {
     return getMockChatResponse(message, jobs);
   }
@@ -120,7 +126,6 @@ export async function chatWithAssistant(message, context) {
 
   try {
     const model = client.getGenerativeModel({ model: 'gemini-pro' });
-    // Combine system prompt and user message for Gemini
     const prompt = `${systemPrompt}\n\nUSER QUERY: ${message}`;
     
     const result = await model.generateContent(prompt);
@@ -211,7 +216,7 @@ function getMockChatResponse(message, jobs) {
 }
 
 export async function parseResume(text) {
-  const client = getGeminiClient(); // CHANGED: Use Gemini instead of OpenAI
+  const client = getGeminiClient(); 
   
   if (!client) {
     return getMockParsedResume(text);

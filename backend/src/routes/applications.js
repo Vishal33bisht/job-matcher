@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
 export default async function applicationRoutes(fastify) {
-  // Create application
   fastify.post('/', async (request, reply) => {
     const { userId, jobId, jobTitle, company, status = 'applied' } = request.body;
     
@@ -19,14 +18,12 @@ export default async function applicationRoutes(fastify) {
         note: 'Application submitted'
       }]
     };
-    
-    // Get existing applications
+
     const existingData = await fastify.redis.get(`applications:${userId}`);
     const applications = existingData 
       ? (typeof existingData === 'string' ? JSON.parse(existingData) : existingData)
       : [];
     
-    // Check if already applied
     const exists = applications.find(app => app.jobId === jobId);
     if (exists) {
       return reply.status(400).send({ error: 'Already applied to this job' });
@@ -38,7 +35,6 @@ export default async function applicationRoutes(fastify) {
     return application;
   });
 
-  // Get all applications for user
   fastify.get('/:userId', async (request, reply) => {
     const { userId } = request.params;
     const { status } = request.query;
@@ -55,7 +51,6 @@ export default async function applicationRoutes(fastify) {
     return { applications };
   });
 
-  // Update application status
   fastify.patch('/:userId/:applicationId', async (request, reply) => {
     const { userId, applicationId } = request.params;
     const { status, note } = request.body;
@@ -84,7 +79,6 @@ export default async function applicationRoutes(fastify) {
     return applications[appIndex];
   });
 
-  // Delete application
   fastify.delete('/:userId/:applicationId', async (request, reply) => {
     const { userId, applicationId } = request.params;
     

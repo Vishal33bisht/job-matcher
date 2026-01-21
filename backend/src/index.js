@@ -13,18 +13,14 @@ dotenv.config();
 
 const fastify = Fastify({ logger: true });
 
-// Register plugins
 await fastify.register(cors, { origin: true });
 await fastify.register(multipart);
 await fastify.register(redisPlugin);
-
-// Register routes
 await fastify.register(jobRoutes, { prefix: '/api/jobs' });
 await fastify.register(resumeRoutes, { prefix: '/api/resume' });
 await fastify.register(applicationRoutes, { prefix: '/api/applications' });
 await fastify.register(aiRoutes, { prefix: '/api/ai' });
 
-// Start server
 const start = async () => {
   try {
     await fastify.listen({ port: process.env.PORT || 3001, host: '0.0.0.0' });

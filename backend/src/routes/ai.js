@@ -2,12 +2,10 @@ import { chatWithAssistant } from '../services/aiService.js';
 import { fetchJobs } from '../services/jobService.js';
 
 export default async function aiRoutes(fastify) {
-  // Chat with AI assistant
   fastify.post('/chat', async (request, reply) => {
     const { userId, message } = request.body;
     
     try {
-      // Get context
       const jobs = await fetchJobs({});
       const applicationsData = await fastify.redis.get(`applications:${userId}`);
       const resumeData = await fastify.redis.get(`resume:${userId}`);
