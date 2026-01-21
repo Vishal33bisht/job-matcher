@@ -21,42 +21,42 @@ graph TD
 ```
 Data Flow:
 
-User Interaction: User uploads a resume (PDF) and sets filters on the Frontend.
+**User Interaction: **User uploads a resume (PDF) and sets filters on the Frontend.
 
-Job Fetching: Backend fetches live job data from JSearch (RapidAPI).
+**Job Fetching:** Backend fetches live job data from JSearch (RapidAPI).
 
-Resume Parsing: pdf-parse extracts raw text from the uploaded PDF.
+**Resume Parsing:** pdf-parse extracts raw text from the uploaded PDF.
 
-AI Scoring: The backend sends the Resume Text + Job Description to Google Gemini.
+**AI Scoring:** The backend sends the Resume Text + Job Description to Google Gemini.
 
-Matching: Gemini returns a JSON object with a Match Score (0-100%) and missing skills.
+**Matching:** Gemini returns a JSON object with a Match Score (0-100%) and missing skills.
 
-Storage: Parsed resumes and session data are cached in Upstash Redis.
+**Storage:** Parsed resumes and session data are cached in Upstash Redis.
 
 🧠 AI Matching Logic
 Our matching system moves beyond simple keyword matching. We use a Generative AI approach powered by Google Gemini.
 
 How it works:
-Extraction: When a file is uploaded, we strip formatting and extract pure text using pdf-parse.
+**Extraction**: When a file is uploaded, we strip formatting and extract pure text using pdf-parse.
 
-Prompt Engineering: We construct a structured prompt for the LLM:
+**Prompt Engineering**: We construct a structured prompt for the LLM:
 
-"Analyze the match between this resume and job posting. Return JSON with score, matched skills, and missing skills."
+"Analyze the match between this resume and the job posting. Return JSON with score, matched skills, and missing skills."
 
-Scoring Criteria: The AI evaluates:
+**Scoring Criteria**: The AI evaluates:
 
-Hard Skills: Direct match of technologies (e.g., React, Node.js).
+**Hard Skills**: Direct match of technologies (e.g., React, Node.js).
 
-Experience Level: Analyzing years of experience vs. requirements.
+**Experience Level**: Analyzing years of experience vs. requirements.
 
-Context: Semantic understanding (e.g., knowing that "Frontend" implies "HTML/CSS").
+**Context**: Semantic understanding (e.g., knowing that "Frontend" implies "HTML/CSS").
 
-Efficiency: To prevent API rate limits, we only re-score when the resume changes or new jobs are fetched.
+**Efficiency**: To prevent API rate limits, we only re-score when the resume changes or new jobs are fetched.
 
 💡 Critical Thinking: Smart Popup Flow
-The Challenge: Job seekers often click "Apply," get redirected to LinkedIn/Indeed, and forget to log the application in their tracker. This leads to incomplete data.
+**The Challenge:** Job seekers often click "Apply," get redirected to LinkedIn/Indeed or any other platform, and forget to log the application in their tracker. This leads to incomplete data.
 
-Our Solution: Intent-Based Tracking
+**Our Solution:** Intent-Based Tracking
 
 Trigger: When a user clicks the "Apply" button, we open the external link in a new tab.
 
@@ -83,22 +83,16 @@ Asynchronous Scoring (BullMQ):
 
 AI scoring is slow (1-2 seconds). We would move scoring to a background job queue. The frontend would display a "Calculating..." skeleton state and update via WebSockets when scores are ready.
 
-Database Migration:
-
-We would migrate from ephemeral storage to PostgreSQL to permanently store user application history, analytics, and user profiles.
-
 ⚠️ Tradeoffs & Limitations
-Synchronous Parsing: PDF parsing happens on the main thread. Large files (>10MB) could briefly block the event loop.
+Synchronous Parsing: PDF parsing happens on the main thread. Large files (greater than 10MB) may briefly block the event loop.
 
-Improvement: Offload parsing to a Node.js Worker Thread.
+**Improvement**: Offload parsing to a Node.js Worker Thread.
 
-API Rate Limits: The JSearch free tier has a limit.
+**API Rate Limits**: The JSearch free tier has a limit.
 
-Mitigation: I implemented a "Mock Data" fallback that kicks in automatically if the API quota is exceeded, ensuring the demo always works.
+**Mitigation:** I implemented a "Mock Data" fallback that kicks in automatically if the API quota is exceeded, ensuring the demo always works.
 
-Auth: Currently uses a simplified "Name-based" login for the assignment demo.
-
-Improvement: Integrate OAuth (Google/GitHub) for secure authentication.
+**Improvement:** Integrate OAuth (Google/GitHub) for secure authentication.
 
 🛠️ Setup Instructions
 Prerequisites
