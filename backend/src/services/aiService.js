@@ -21,7 +21,7 @@ export async function calculateMatchScore(resumeText, job) {
   }
 
   try {
-    const model = client.getGenerativeModel({ model: 'gemini-pro' });
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     const prompt = `
     Analyze the match between this resume and job posting.
@@ -125,7 +125,7 @@ export async function chatWithAssistant(message, context) {
   `;
 
   try {
-    const model = client.getGenerativeModel({ model: 'gemini-pro' });
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `${systemPrompt}\n\nUSER QUERY: ${message}`;
     
     const result = await model.generateContent(prompt);
@@ -223,7 +223,7 @@ export async function parseResume(text) {
   }
 
   try {
-    const model = client.getGenerativeModel({ model: 'gemini-pro' });
+    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     const prompt = `Extract key information from this resume. Return JSON only (no markdown):
         {
