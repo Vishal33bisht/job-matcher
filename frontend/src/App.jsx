@@ -12,6 +12,7 @@ function App() {
   const { userId, showResumeModal, hasResume, checkResume } = useStore();
 
   useEffect(() => {
+    fetch('https://job-matcher-baly.onrender.com/api/jobs?query=dev').catch(()=>{});
     if (userId) {
       checkResume();
     }

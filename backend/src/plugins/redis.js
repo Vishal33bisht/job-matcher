@@ -6,7 +6,8 @@ async function redisPlugin(fastify) {
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
   });
-
+  console.log('Redis URL:', process.env.UPSTASH_REDIS_REST_URL ? '✅ Found' : '❌ Missing');
+  console.log('Redis Token:', process.env.UPSTASH_REDIS_REST_TOKEN ? '✅ Found' : '❌ Missing');
   fastify.decorate('redis', redis);
 }
 
