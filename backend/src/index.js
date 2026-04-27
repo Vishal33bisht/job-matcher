@@ -12,6 +12,7 @@ import redisPlugin from './plugins/redis.js';
 dotenv.config();
 
 const fastify = Fastify({ logger: true });
+const port = Number(process.env.PORT) || 3001;
 
 await fastify.register(cors, { origin: true });
 await fastify.register(multipart);
@@ -23,8 +24,8 @@ await fastify.register(aiRoutes, { prefix: '/api/ai' });
 
 const start = async () => {
   try {
-    await fastify.listen({ port: process.env.PORT || 3001, host: '0.0.0.0' });
-    console.log(`Server running on port ${process.env.PORT || 3001}`);
+    await fastify.listen({ port, host: '0.0.0.0' });
+    console.log(`Server running on port ${port}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

@@ -3,22 +3,20 @@ import { useEffect } from 'react';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import ApplicationsPage from './pages/ApplicationsPage';
-import LoginPage from './pages/LoginPage'; // Import the new page
+import LoginPage from './pages/LoginPage';
 import ResumeModal from './components/ResumeModal';
 import ApplyConfirmModal from './components/ApplyConfirmModal';
 import { useStore } from './store/useStore';
 
 function App() {
-  const { userId, showResumeModal, hasResume, checkResume } = useStore();
+  const { userId, showResumeModal, checkResume } = useStore();
 
   useEffect(() => {
-    fetch('https://job-matcher-baly.onrender.com/api/jobs?query=dev').catch(()=>{});
     if (userId) {
       checkResume();
     }
-  }, [userId]);
+  }, [userId, checkResume]);
 
-  // If no user, show Login Page
   if (!userId) {
     return <LoginPage />;
   }

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const JSEARCH_API = 'https://jsearch.p.rapidapi.com';
+let warnedMissingRapidApiKey = false;
 
 export async function fetchJobs(filters = {}) {
   const {
@@ -12,6 +13,14 @@ export async function fetchJobs(filters = {}) {
     page = 1
   } = filters;
 
+  if (!process.env.RAPIDAPI_KEY) {
+    if (!warnedMissingRapidApiKey) {
+      console.warn('RAPIDAPI_KEY missing; using mock jobs.');
+      warnedMissingRapidApiKey = true;
+    }
+    return filterJobs(getMockJobs(), filters);
+  }
+
   try {
     const response = await axios.get(`${JSEARCH_API}/search`, {
       headers: {
@@ -22,29 +31,31 @@ export async function fetchJobs(filters = {}) {
         query: `${query} ${location}`.trim(),
         page: page.toString(),
         num_pages: '1',
-        date_posted: datePosted || 'all',
-        remote_jobs_only: workMode === 'remote' ? 'true' : 'false',
+        date_posted: mapDatePosted(datePosted),
+        remote_jobs_only: workMode?.toLowerCase() === 'remote' ? 'true' : 'false',
         employment_types: mapJobType(jobType)
       }
     });
 
-    return response.data.data?.map(job => ({
+    const jobs = response.data.data?.map(job => ({
       id: job.job_id,
       title: job.job_title,
       company: job.employer_name,
-      location: job.job_city ? `${job.job_city}, ${job.job_country}` : job.job_country,
+      location: formatLocation(job),
       description: job.job_description,
-      jobType: job.job_employment_type,
+      jobType: formatJobType(job.job_employment_type),
       workMode: job.job_is_remote ? 'Remote' : 'On-site',
       postedDate: job.job_posted_at_datetime_utc,
       applyLink: job.job_apply_link,
       logo: job.employer_logo,
       skills: extractSkills(job.job_description),
-      salary: job.job_min_salary ? `$${job.job_min_salary} - $${job.job_max_salary}` : 'Not specified'
+      salary: formatSalary(job)
     })) || [];
+
+    return filterJobs(jobs, filters);
   } catch (error) {
     console.error('Error fetching jobs:', error.message);
-    return getMockJobs();
+    return filterJobs(getMockJobs(), filters);
   }
 }
 
@@ -56,6 +67,68 @@ function mapJobType(type) {
     'internship': 'INTERN'
   };
   return mapping[type?.toLowerCase()] || '';
+}
+
+function mapDatePosted(value) {
+  const mapping = {
+    '24h': 'today',
+    '7d': 'week',
+    '30d': 'month',
+  };
+  return mapping[value] || value || 'all';
+}
+
+function formatLocation(job) {
+  if (job.job_city && job.job_country) return `${job.job_city}, ${job.job_country}`;
+  return job.job_city || job.job_country || 'Remote';
+}
+
+function formatSalary(job) {
+  if (job.job_min_salary && job.job_max_salary) {
+    return `$${job.job_min_salary} - $${job.job_max_salary}`;
+  }
+  if (job.job_min_salary) return `$${job.job_min_salary}+`;
+  return 'Not specified';
+}
+
+function formatJobType(type) {
+  const mapping = {
+    FULLTIME: 'Full-time',
+    PARTTIME: 'Part-time',
+    CONTRACTOR: 'Contract',
+    INTERN: 'Internship',
+  };
+  return mapping[type] || type || 'Not specified';
+}
+
+function normalizeSkills(skills) {
+  if (Array.isArray(skills)) return skills;
+  if (typeof skills === 'string' && skills.trim()) {
+    return skills.split(',').map(skill => skill.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function filterJobs(jobs, filters = {}) {
+  const query = filters.query?.trim().toLowerCase();
+  const location = filters.location?.trim().toLowerCase();
+  const jobType = filters.jobType?.trim().toLowerCase();
+  const workMode = filters.workMode?.trim().toLowerCase();
+  const skills = normalizeSkills(filters.skills).map(skill => skill.toLowerCase());
+
+  return jobs.filter((job) => {
+    const searchableText = `${job.title} ${job.company} ${job.description}`.toLowerCase();
+    const jobLocation = String(job.location || '').toLowerCase();
+    const jobSkills = (job.skills || []).map(skill => skill.toLowerCase());
+
+    if (query && !searchableText.includes(query)) return false;
+    if (location && !jobLocation.includes(location)) return false;
+    if (jobType && String(job.jobType || '').toLowerCase() !== jobType) return false;
+    if (workMode && String(job.workMode || '').toLowerCase() !== workMode) return false;
+    if (skills.length && !skills.every(skill => jobSkills.includes(skill))) return false;
+
+    return true;
+  });
 }
 
 function extractSkills(description) {

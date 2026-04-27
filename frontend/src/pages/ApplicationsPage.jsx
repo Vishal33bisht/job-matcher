@@ -24,7 +24,7 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     fetchApplications();
-  }, []);
+  }, [fetchApplications]);
 
   const filteredApps = filter === 'all' 
     ? applications 

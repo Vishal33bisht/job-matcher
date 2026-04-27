@@ -1,6 +1,21 @@
 import { fetchJobs } from '../services/jobService.js';
 import { calculateMatchScore } from '../services/aiService.js';
 
+function parseStoredJson(data, fallback) {
+  if (!data) return fallback;
+  if (typeof data !== 'string') return data;
+
+  try {
+    return JSON.parse(data);
+  } catch {
+    return fallback;
+  }
+}
+
+function getResumeText(resume) {
+  return resume?.text || resume?.rawText || '';
+}
+
 export default async function jobRoutes(fastify) {
   fastify.get('/', async (request, reply) => {
     const { userId, ...filters } = request.query;
@@ -12,11 +27,12 @@ export default async function jobRoutes(fastify) {
         const resumeData = await fastify.redis.get(`resume:${userId}`);
         
         if (resumeData) {
-          const resume = typeof resumeData === 'string' ? JSON.parse(resumeData) : resumeData;
+          const resume = parseStoredJson(resumeData, null);
+          const resumeText = getResumeText(resume);
           
           const jobsWithScores = await Promise.all(
             jobs.map(async (job) => {
-              const matchData = await calculateMatchScore(resume.text, job);
+              const matchData = await calculateMatchScore(resumeText, job);
               return {
                 ...job,
                 matchScore: matchData.score,
@@ -64,11 +80,12 @@ export default async function jobRoutes(fastify) {
       }
       
       const jobs = await fetchJobs({});
-      const resume = typeof resumeData === 'string' ? JSON.parse(resumeData) : resumeData;
+      const resume = parseStoredJson(resumeData, null);
+      const resumeText = getResumeText(resume);
       
       const scoredJobs = await Promise.all(
         jobs.slice(0, 20).map(async (job) => {
-          const matchData = await calculateMatchScore(resume.text, job);
+          const matchData = await calculateMatchScore(resumeText, job);
           return { ...job, ...matchData, matchScore: matchData.score };
         })
       );

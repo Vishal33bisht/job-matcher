@@ -96,7 +96,7 @@ Synchronous Parsing: PDF parsing happens on the main thread. Large files (greate
 
 🛠️ Setup Instructions
 Prerequisites
-Node.js v18+
+Node.js v20.19+ or v22.12+
 
 Google Gemini API Key
 

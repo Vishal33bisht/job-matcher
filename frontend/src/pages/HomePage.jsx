@@ -21,7 +21,7 @@ export default function HomePage() {
     if (hasResume) {
       fetchBestMatches();
     }
-  }, [hasResume]);
+  }, [fetchBestMatches, fetchJobs, hasResume]);
 
   const getMatchColor = (score) => {
     if (score >= 80) return 'bg-green-100 text-green-700 border-green-200';

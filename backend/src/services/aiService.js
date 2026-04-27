@@ -10,14 +10,15 @@ function getGeminiClient() {
 }
 
 function cleanJsonString(text) {
-  return text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  return String(text || '').replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 }
 
 export async function calculateMatchScore(resumeText, job) {
   const client = getGeminiClient();
+  const safeResumeText = String(resumeText || '');
   
   if (!client) {
-    return getMockMatchScore(resumeText, job);
+    return getMockMatchScore(safeResumeText, job);
   }
 
   try {
@@ -27,7 +28,7 @@ export async function calculateMatchScore(resumeText, job) {
     Analyze the match between this resume and job posting.
     
     RESUME:
-    ${resumeText.substring(0, 2000)}
+    ${safeResumeText.substring(0, 2000)}
     
     JOB:
     Title: ${job.title}
@@ -53,7 +54,7 @@ export async function calculateMatchScore(resumeText, job) {
     return JSON.parse(jsonStr);
   } catch (error) {
     console.error('AI scoring error:', error);
-    return getMockMatchScore(resumeText, job);
+    return getMockMatchScore(safeResumeText, job);
   }
 }
 
@@ -113,7 +114,7 @@ export async function chatWithAssistant(message, context) {
   When users ask to find/filter jobs, respond with this JSON format only:
   {
     "type": "job_filter",
-    "filters": { "query": "", "location": "", "workMode": "", "minScore": 0 },
+    "filters": { "query": "", "location": "", "workMode": "", "minMatchScore": 0 },
     "message": "Your explanation"
   }
   
@@ -146,7 +147,7 @@ export async function chatWithAssistant(message, context) {
 }
 
 function getMockChatResponse(message, jobs) {
-  const msgLower = message.toLowerCase();
+  const msgLower = String(message || '').toLowerCase();
   
   if (msgLower.includes('remote')) {
     return {
@@ -217,9 +218,10 @@ function getMockChatResponse(message, jobs) {
 
 export async function parseResume(text) {
   const client = getGeminiClient(); 
+  const resumeText = String(text || '');
   
   if (!client) {
-    return getMockParsedResume(text);
+    return getMockParsedResume(resumeText);
   }
 
   try {
@@ -235,7 +237,7 @@ export async function parseResume(text) {
           "summary": ""
         }
         
-        Resume: ${text.substring(0, 3000)}`;
+        Resume: ${resumeText.substring(0, 3000)}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -245,7 +247,7 @@ export async function parseResume(text) {
     return JSON.parse(jsonStr);
   } catch (error) {
     console.error('Resume parsing error:', error);
-    return getMockParsedResume(text);
+    return getMockParsedResume(resumeText);
   }
 }
 
@@ -257,7 +259,7 @@ function getMockParsedResume(text) {
     'GraphQL', 'REST API', 'Kubernetes', 'PostgreSQL', 'Redis'
   ];
   
-  const textLower = text.toLowerCase();
+  const textLower = String(text || '').toLowerCase();
   const foundSkills = skillKeywords.filter(skill => 
     textLower.includes(skill.toLowerCase())
   );
