@@ -47,8 +47,9 @@ export default async function jobRoutes(fastify) {
         }
       }
 
-      if (filters.minMatchScore) {
-        jobs = jobs.filter(job => job.matchScore >= parseInt(filters.minMatchScore));
+      const minMatchScore = Number.parseInt(filters.minMatchScore, 10);
+      if (Number.isFinite(minMatchScore) && minMatchScore > 0) {
+        jobs = jobs.filter(job => Number(job.matchScore || 0) >= minMatchScore);
       }
       
       return { jobs, total: jobs.length };

@@ -12,6 +12,8 @@ export async function fetchJobs(filters = {}) {
     workMode = '',
     page = 1
   } = filters;
+  const searchQuery = String(query || '').trim() || 'software developer';
+  const searchLocation = String(location || '').trim();
 
   if (!process.env.RAPIDAPI_KEY) {
     if (!warnedMissingRapidApiKey) {
@@ -28,7 +30,7 @@ export async function fetchJobs(filters = {}) {
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
       },
       params: {
-        query: `${query} ${location}`.trim(),
+        query: `${searchQuery} ${searchLocation}`.trim(),
         page: page.toString(),
         num_pages: '1',
         date_posted: mapDatePosted(datePosted),

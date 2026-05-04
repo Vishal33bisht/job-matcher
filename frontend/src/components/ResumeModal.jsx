@@ -7,6 +7,7 @@ export default function ResumeModal() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [error, setError] = useState('');
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -14,18 +15,22 @@ export default function ResumeModal() {
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && (droppedFile.type === 'application/pdf' || droppedFile.type === 'text/plain')) {
       setFile(droppedFile);
+      setError('');
     }
   };
 
   const handleSubmit = async () => {
     if (!file) return;
     setUploading(true);
+    setError('');
     try {
       await uploadResume(file);
     } catch (error) {
       console.error('Upload failed:', error);
+      setError(error.response?.data?.error || error.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   return (
@@ -50,7 +55,10 @@ export default function ResumeModal() {
           <input
             type="file"
             accept=".pdf,.txt"
-            onChange={(e) => setFile(e.target.files[0])}
+            onChange={(e) => {
+              setFile(e.target.files[0]);
+              setError('');
+            }}
             className="hidden"
             id="resume-upload"
           />
@@ -66,6 +74,12 @@ export default function ResumeModal() {
             )}
           </label>
         </div>
+
+        {error && (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        )}
 
         <button
           onClick={handleSubmit}
