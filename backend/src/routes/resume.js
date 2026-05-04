@@ -60,7 +60,7 @@ export default async function resumeRoutes(fastify) {
       const data = await fastify.redis.get(`resume:${userId}`);
 
       if (!data) {
-        return reply.code(404).send({ error: 'Resume not found' });
+        return { hasResume: false, resume: null };
       }
 
       if (typeof data !== 'string') {
@@ -72,7 +72,7 @@ export default async function resumeRoutes(fastify) {
       } catch (error) {
         request.log.error({ err: error, userId }, 'Stored resume data is not valid JSON.');
         await fastify.redis.del(`resume:${userId}`);
-        return reply.code(404).send({ error: 'Resume not found' });
+        return { hasResume: false, resume: null };
       }
     } catch (error) {
       request.log.error({ err: error, userId }, 'Failed to load resume.');

@@ -5,6 +5,10 @@ function normalizeResumeResponse(payload) {
   return payload?.resume || payload?.data || payload;
 }
 
+function hasCachedResume(userId) {
+  return Boolean(userId && localStorage.getItem(`job_matcher_resume_uploaded_${userId}`) === 'true');
+}
+
 function buildQueryParams(filters, userId) {
   const params = new URLSearchParams();
 
@@ -24,13 +28,15 @@ function buildQueryParams(filters, userId) {
   return params;
 }
 
+const initialUserId = localStorage.getItem('job_matcher_userid') || localStorage.getItem('userId') || null;
+
 export const useStore = create((set, get) => ({
-  userId: localStorage.getItem('job_matcher_userid') || localStorage.getItem('userId') || null,
+  userId: initialUserId,
   userName: localStorage.getItem('job_matcher_username') || null,
 
   hasResume: false,
   resumeData: null,
-  showResumeModal: false,
+  showResumeModal: Boolean(initialUserId && !hasCachedResume(initialUserId)),
 
   jobs: [],
   bestMatches: [],
@@ -57,7 +63,11 @@ export const useStore = create((set, get) => ({
     localStorage.setItem('job_matcher_userid', id);
     localStorage.setItem('userId', id);
     if (name) localStorage.setItem('job_matcher_username', name);
-    set({ userId: id, userName: name || get().userName });
+    set({
+      userId: id,
+      userName: name || get().userName,
+      showResumeModal: !hasCachedResume(id),
+    });
   },
 
   checkResume: async () => {
@@ -66,8 +76,18 @@ export const useStore = create((set, get) => ({
 
     try {
       const response = await api.get(`/resume/${userId}`);
-      set({ hasResume: true, resumeData: normalizeResumeResponse(response.data), showResumeModal: false });
-    } catch {
+      const resume = normalizeResumeResponse(response.data);
+
+      if (!resume || response.data?.hasResume === false) {
+        localStorage.removeItem(`job_matcher_resume_uploaded_${userId}`);
+        set({ hasResume: false, resumeData: null, showResumeModal: true });
+        return;
+      }
+
+      localStorage.setItem(`job_matcher_resume_uploaded_${userId}`, 'true');
+      set({ hasResume: true, resumeData: resume, showResumeModal: false });
+    } catch (error) {
+      localStorage.removeItem(`job_matcher_resume_uploaded_${userId}`);
       set({ hasResume: false, showResumeModal: true });
     }
   },
@@ -83,6 +103,7 @@ export const useStore = create((set, get) => ({
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
+    localStorage.setItem(`job_matcher_resume_uploaded_${userId}`, 'true');
     set({ hasResume: true, resumeData: normalizeResumeResponse(response.data), showResumeModal: false });
     get().fetchJobs();
     get().fetchBestMatches();
