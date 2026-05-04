@@ -31,12 +31,23 @@ export default function HomePage() {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Recently';
+
     const now = new Date();
     const days = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    if (days < 0) return 'Recently';
     if (days === 0) return 'Today';
     if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days}d ago`;
-    return `${Math.floor(days / 7)}w ago`;
+    if (days <= 5) return `${days}d ago`;
+    return 'Recently';
+  };
+
+  const isPostedToday = (dateString) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return false;
+
+    const now = new Date();
+    return date.toDateString() === now.toDateString();
   };
 
   return (
@@ -134,7 +145,7 @@ export default function HomePage() {
                 <TrendingUp className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{jobs.filter(j => formatDate(j.postedDate) === 'Today').length}</p>
+                <p className="text-2xl font-bold text-gray-900">{jobs.filter(j => isPostedToday(j.postedDate)).length}</p>
                 <p className="text-sm text-gray-500">New Today</p>
               </div>
             </div>

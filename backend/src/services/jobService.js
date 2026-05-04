@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const JSEARCH_API = 'https://jsearch.p.rapidapi.com';
+const MAX_JOB_AGE_DAYS = 5;
 let warnedMissingRapidApiKey = false;
 
 export async function fetchJobs(filters = {}) {
@@ -12,6 +13,7 @@ export async function fetchJobs(filters = {}) {
     workMode = '',
     page = 1
   } = filters;
+  const skipQueryFilter = Boolean(filters.skipQueryFilter);
   const searchQuery = String(query || '').trim() || 'software developer';
   const searchLocation = String(location || '').trim();
 
@@ -47,17 +49,17 @@ export async function fetchJobs(filters = {}) {
       description: job.job_description,
       jobType: formatJobType(job.job_employment_type),
       workMode: job.job_is_remote ? 'Remote' : 'On-site',
-      postedDate: job.job_posted_at_datetime_utc,
+      postedDate: normalizePostedDate(job),
       applyLink: job.job_apply_link,
       logo: job.employer_logo,
       skills: extractSkills(job.job_description),
       salary: formatSalary(job)
     })) || [];
 
-    return filterJobs(jobs, filters);
+    return filterJobs(jobs, { ...filters, skipQueryFilter });
   } catch (error) {
     console.error('Error fetching jobs:', error.message);
-    return filterJobs(getMockJobs(), filters);
+    return filterJobs(getMockJobs(), { ...filters, skipQueryFilter });
   }
 }
 
@@ -74,10 +76,28 @@ function mapJobType(type) {
 function mapDatePosted(value) {
   const mapping = {
     '24h': 'today',
+    '5d': '3days',
     '7d': 'week',
     '30d': 'month',
   };
-  return mapping[value] || value || 'all';
+  return mapping[value] || value || '3days';
+}
+
+function normalizePostedDate(job) {
+  if (job.job_posted_at_datetime_utc) return job.job_posted_at_datetime_utc;
+  if (job.job_posted_at_timestamp) {
+    return new Date(Number(job.job_posted_at_timestamp) * 1000).toISOString();
+  }
+  return null;
+}
+
+function getJobAgeDays(postedDate) {
+  if (!postedDate) return Infinity;
+
+  const date = new Date(postedDate);
+  if (Number.isNaN(date.getTime())) return Infinity;
+
+  return Math.floor((Date.now() - date.getTime()) / 86400000);
 }
 
 function formatLocation(job) {
@@ -112,7 +132,7 @@ function normalizeSkills(skills) {
 }
 
 function filterJobs(jobs, filters = {}) {
-  const query = filters.query?.trim().toLowerCase();
+  const query = filters.skipQueryFilter ? '' : filters.query?.trim().toLowerCase();
   const location = filters.location?.trim().toLowerCase();
   const jobType = filters.jobType?.trim().toLowerCase();
   const workMode = filters.workMode?.trim().toLowerCase();
@@ -122,8 +142,10 @@ function filterJobs(jobs, filters = {}) {
     const searchableText = `${job.title} ${job.company} ${job.description}`.toLowerCase();
     const jobLocation = String(job.location || '').toLowerCase();
     const jobSkills = (job.skills || []).map(skill => skill.toLowerCase());
+    const jobAgeDays = getJobAgeDays(job.postedDate);
 
-    if (query && !searchableText.includes(query)) return false;
+    if (jobAgeDays < 0 || jobAgeDays > MAX_JOB_AGE_DAYS) return false;
+    if (query && !matchesQuery(searchableText, query)) return false;
     if (location && !jobLocation.includes(location)) return false;
     if (jobType && String(job.jobType || '').toLowerCase() !== jobType) return false;
     if (workMode && String(job.workMode || '').toLowerCase() !== workMode) return false;
@@ -133,12 +155,28 @@ function filterJobs(jobs, filters = {}) {
   });
 }
 
+function matchesQuery(searchableText, query) {
+  if (searchableText.includes(query)) return true;
+
+  const tokens = query
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2);
+
+  if (!tokens.length) return true;
+
+  const matchedTokens = tokens.filter((token) => searchableText.includes(token));
+  return matchedTokens.length >= Math.min(2, tokens.length);
+}
+
 function extractSkills(description) {
   const skillKeywords = [
     'JavaScript', 'React', 'Node.js', 'Python', 'Java', 'TypeScript',
     'AWS', 'Docker', 'Kubernetes', 'SQL', 'MongoDB', 'PostgreSQL',
     'Git', 'REST API', 'GraphQL', 'HTML', 'CSS', 'Vue.js', 'Angular',
-    'Machine Learning', 'AI', 'Figma', 'UI/UX', 'Agile', 'Scrum'
+    'Machine Learning', 'AI', 'Figma', 'UI/UX', 'Agile', 'Scrum',
+    'Technical Support', 'Troubleshooting', 'Help Desk', 'Service Desk',
+    'Active Directory', 'Windows', 'Networking', 'Hardware', 'Incident'
   ];
   
   const found = skillKeywords.filter(skill => 
@@ -149,6 +187,34 @@ function extractSkills(description) {
 
 export function getMockJobs() {
   return [
+    {
+      id: 'support-1',
+      title: 'Technical Support Specialist',
+      company: 'HelpDesk Pro',
+      location: 'Remote',
+      description: 'Technical Support Specialist needed for troubleshooting customer issues, debugging product problems, managing tickets, documenting incidents, and escalating complex cases. Experience with Windows, networking basics, and customer support is preferred.',
+      jobType: 'Full-time',
+      workMode: 'Remote',
+      postedDate: new Date().toISOString(),
+      applyLink: 'https://example.com/apply/support-1',
+      logo: null,
+      skills: ['Technical Support', 'Troubleshooting', 'Windows', 'Networking'],
+      salary: '$55,000 - $75,000'
+    },
+    {
+      id: 'support-2',
+      title: 'IT Support Analyst',
+      company: 'ServiceWorks',
+      location: 'Austin, TX',
+      description: 'IT Support Analyst role focused on service desk tickets, hardware and software troubleshooting, incident resolution, Active Directory account support, and clear communication with internal users.',
+      jobType: 'Full-time',
+      workMode: 'Hybrid',
+      postedDate: new Date(Date.now() - 86400000).toISOString(),
+      applyLink: 'https://example.com/apply/support-2',
+      logo: null,
+      skills: ['IT Support', 'Service Desk', 'Active Directory', 'Troubleshooting'],
+      salary: '$60,000 - $82,000'
+    },
     {
       id: '1',
       title: 'Senior React Developer',
