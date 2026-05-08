@@ -1,5 +1,9 @@
 import { fetchJobs } from '../services/jobService.js';
 import { calculateMatchScore } from '../services/aiService.js';
+import { createHash } from 'node:crypto';
+
+const DEFAULT_RESUME_JOB_QUERY = 'technical support specialist';
+const MATCH_SCORE_CACHE_VERSION = 'v1';
 
 function parseStoredJson(data, fallback) {
   if (!data) return fallback;
@@ -20,42 +24,98 @@ function getResumeSkills(resume) {
   return resume?.parsed?.skills || resume?.skills || [];
 }
 
+function cleanResumeLine(line) {
+  return String(line || '')
+    .replace(/^[\s\-*\u2022]+/, '')
+    .replace(/^(objective|summary|professional summary|career objective|experience|work experience|professional experience)\s*:?\s*/i, '')
+    .replace(/^(seeking|looking for|to obtain|to secure|pursuing)\s+(an?\s+)?/i, '')
+    .replace(/\s+(role|position|opportunity).*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function looksLikeJobTitle(line) {
+  const cleaned = cleanResumeLine(line);
+  if (!cleaned || cleaned.length < 3 || cleaned.length > 80) return false;
+  if (cleaned.includes('@') || /^https?:\/\//i.test(cleaned)) return false;
+  if (/^\d{4}\b/.test(cleaned) || /\b\d{4}\s*[-\u2013\u2014]\s*(\d{4}|present|current)\b/i.test(cleaned)) return false;
+  if (/[.!?]$/.test(cleaned) || cleaned.split(/\s+/).length > 8) return false;
+
+  return /\b(engineer|developer|analyst|specialist|administrator|manager|designer|support|technician|consultant|associate|architect|lead|intern|assistant|coordinator)\b/i.test(cleaned);
+}
+
+function extractJobTitleNearSections(resumeText) {
+  const lines = String(resumeText || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const sectionPattern = /\b(objective|summary|professional summary|career objective|experience|work experience|professional experience)\b/i;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!sectionPattern.test(lines[index])) continue;
+
+    const nearbyLines = lines.slice(index, index + 7);
+    const titleLine = nearbyLines.find((line) => looksLikeJobTitle(line));
+    if (titleLine) return cleanResumeLine(titleLine);
+  }
+
+  return lines.slice(0, 8).find((line) => looksLikeJobTitle(line)) || '';
+}
+
 function buildResumeJobQuery(resume) {
-  const resumeText = getResumeText(resume).toLowerCase();
-  const skillsText = getResumeSkills(resume).join(' ').toLowerCase();
-  const searchText = `${resumeText} ${skillsText}`;
+  const resumeText = getResumeText(resume);
+  const titleFromResume = extractJobTitleNearSections(resumeText);
+  if (titleFromResume) return titleFromResume;
 
-  const roleSignals = [
-    {
-      terms: ['troubleshoot', 'debugging', 'technical support', 'help desk', 'service desk', 'ticket', 'it support', 'customer support', 'hardware', 'windows', 'active directory', 'incident'],
-      query: 'technical support specialist help desk troubleshooting',
-    },
-    {
-      terms: ['network', 'router', 'switch', 'firewall', 'vpn', 'ccna', 'lan', 'wan'],
-      query: 'network support engineer technician',
-    },
-    {
-      terms: ['linux', 'system administrator', 'server', 'vmware', 'shell', 'powershell'],
-      query: 'systems administrator technical support',
-    },
-    {
-      terms: ['data analyst', 'excel', 'power bi', 'tableau', 'analytics', 'dashboard'],
-      query: 'data analyst',
-    },
-    {
-      terms: ['react', 'node.js', 'javascript', 'typescript', 'frontend', 'backend', 'full stack'],
-      query: 'software developer',
-    },
-  ];
+  const parsedExperience = resume?.parsed?.experience || resume?.experience || [];
+  const titleFromParsedExperience = parsedExperience
+    .map((item) => (typeof item === 'string' ? item : item?.title || item?.role || item?.position || ''))
+    .find((line) => looksLikeJobTitle(line));
 
-  const bestSignal = roleSignals
-    .map((signal) => ({
-      query: signal.query,
-      score: signal.terms.filter((term) => searchText.includes(term)).length,
-    }))
-    .sort((a, b) => b.score - a.score)[0];
+  if (titleFromParsedExperience) return cleanResumeLine(titleFromParsedExperience);
 
-  return bestSignal?.score > 0 ? bestSignal.query : 'technical support specialist';
+  const skills = getResumeSkills(resume).slice(0, 3).join(' ');
+  return skills ? `${DEFAULT_RESUME_JOB_QUERY} ${skills}` : DEFAULT_RESUME_JOB_QUERY;
+}
+
+function hashText(value) {
+  return createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function parseCachedMatchScore(data) {
+  const parsed = parseStoredJson(data, null);
+  return parsed && Number.isFinite(Number(parsed.score)) ? parsed : null;
+}
+
+async function getCachedMatchScore(fastify, resumeText, job) {
+  const resumeHash = hashText(resumeText);
+  const jobId = job.id || hashText(`${job.title}|${job.company}|${job.applyLink}`);
+  const cacheKey = `match_score:${MATCH_SCORE_CACHE_VERSION}:${resumeHash}:${jobId}`;
+  const cached = parseCachedMatchScore(await fastify.redis.get(cacheKey));
+
+  if (cached) return cached;
+
+  const matchData = await calculateMatchScore(resumeText, job);
+  await fastify.redis.set(cacheKey, JSON.stringify(matchData));
+  return matchData;
+}
+
+async function addMatchScores(fastify, jobs, resumeText) {
+  const jobsWithScores = await Promise.all(
+    jobs.map(async (job) => {
+      const matchData = await getCachedMatchScore(fastify, resumeText, job);
+      return {
+        ...job,
+        matchScore: matchData.score,
+        matchedSkills: matchData.matchedSkills,
+        missingSkills: matchData.missingSkills,
+        matchSummary: matchData.summary
+      };
+    })
+  );
+
+  return jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
 }
 
 export default async function jobRoutes(fastify) {
@@ -82,20 +142,7 @@ export default async function jobRoutes(fastify) {
       let jobs = await fetchJobs(jobFilters);
 
       if (resumeText) {
-        const jobsWithScores = await Promise.all(
-          jobs.map(async (job) => {
-            const matchData = await calculateMatchScore(resumeText, job);
-            return {
-              ...job,
-              matchScore: matchData.score,
-              matchedSkills: matchData.matchedSkills,
-              missingSkills: matchData.missingSkills,
-              matchSummary: matchData.summary
-            };
-          })
-        );
-        
-        jobs = jobsWithScores.sort((a, b) => b.matchScore - a.matchScore);
+        jobs = await addMatchScores(fastify, jobs, resumeText);
       }
 
       const minMatchScore = Number.parseInt(filters.minMatchScore, 10);
@@ -135,15 +182,11 @@ export default async function jobRoutes(fastify) {
       const resumeText = getResumeText(resume);
       const jobs = await fetchJobs({
         query: buildResumeJobQuery(resume),
+        location: request.query.location,
         skipQueryFilter: true,
       });
       
-      const scoredJobs = await Promise.all(
-        jobs.slice(0, 20).map(async (job) => {
-          const matchData = await calculateMatchScore(resumeText, job);
-          return { ...job, ...matchData, matchScore: matchData.score };
-        })
-      );
+      const scoredJobs = await addMatchScores(fastify, jobs.slice(0, 20), resumeText);
       
       const bestMatches = scoredJobs
         .sort((a, b) => b.matchScore - a.matchScore)

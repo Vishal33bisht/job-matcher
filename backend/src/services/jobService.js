@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const JSEARCH_API = 'https://jsearch.p.rapidapi.com';
 const MAX_JOB_AGE_DAYS = 5;
+const DAY_MS = 86400000;
 let warnedMissingRapidApiKey = false;
 
 export async function fetchJobs(filters = {}) {
@@ -32,7 +33,8 @@ export async function fetchJobs(filters = {}) {
         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
       },
       params: {
-        query: `${searchQuery} ${searchLocation}`.trim(),
+        query: searchQuery,
+        location: searchLocation,
         page: page.toString(),
         num_pages: '1',
         date_posted: mapDatePosted(datePosted),
@@ -186,6 +188,8 @@ function extractSkills(description) {
 }
 
 export function getMockJobs() {
+  const recentDate = (index) => new Date(Date.now() - (index % MAX_JOB_AGE_DAYS) * DAY_MS).toISOString();
+
   return [
     {
       id: 'support-1',
@@ -195,7 +199,7 @@ export function getMockJobs() {
       description: 'Technical Support Specialist needed for troubleshooting customer issues, debugging product problems, managing tickets, documenting incidents, and escalating complex cases. Experience with Windows, networking basics, and customer support is preferred.',
       jobType: 'Full-time',
       workMode: 'Remote',
-      postedDate: new Date().toISOString(),
+      postedDate: recentDate(0),
       applyLink: 'https://example.com/apply/support-1',
       logo: null,
       skills: ['Technical Support', 'Troubleshooting', 'Windows', 'Networking'],
@@ -209,7 +213,7 @@ export function getMockJobs() {
       description: 'IT Support Analyst role focused on service desk tickets, hardware and software troubleshooting, incident resolution, Active Directory account support, and clear communication with internal users.',
       jobType: 'Full-time',
       workMode: 'Hybrid',
-      postedDate: new Date(Date.now() - 86400000).toISOString(),
+      postedDate: recentDate(1),
       applyLink: 'https://example.com/apply/support-2',
       logo: null,
       skills: ['IT Support', 'Service Desk', 'Active Directory', 'Troubleshooting'],
@@ -223,7 +227,7 @@ export function getMockJobs() {
       description: 'We are looking for a Senior React Developer with experience in TypeScript, Node.js, and AWS. You will be working on cutting-edge web applications.',
       jobType: 'Full-time',
       workMode: 'Remote',
-      postedDate: new Date().toISOString(),
+      postedDate: recentDate(0),
       applyLink: 'https://example.com/apply/1',
       logo: null,
       skills: ['React', 'TypeScript', 'Node.js', 'AWS'],
@@ -237,7 +241,7 @@ export function getMockJobs() {
       description: 'Join our team as a Full Stack Engineer. Experience with Python, Django, React required. We build innovative fintech solutions.',
       jobType: 'Full-time',
       workMode: 'Hybrid',
-      postedDate: new Date(Date.now() - 86400000).toISOString(),
+      postedDate: recentDate(1),
       applyLink: 'https://example.com/apply/2',
       logo: null,
       skills: ['Python', 'Django', 'React', 'PostgreSQL'],
@@ -251,7 +255,7 @@ export function getMockJobs() {
       description: 'Looking for UX Designer with Figma expertise. UI/UX design experience required. Create beautiful user experiences.',
       jobType: 'Full-time',
       workMode: 'On-site',
-      postedDate: new Date(Date.now() - 172800000).toISOString(),
+      postedDate: recentDate(2),
       applyLink: 'https://example.com/apply/3',
       logo: null,
       skills: ['Figma', 'UI/UX', 'Adobe XD', 'Sketch'],
@@ -265,7 +269,7 @@ export function getMockJobs() {
       description: 'Backend Developer needed with strong Node.js and MongoDB experience. Build scalable APIs and microservices.',
       jobType: 'Full-time',
       workMode: 'Remote',
-      postedDate: new Date(Date.now() - 259200000).toISOString(),
+      postedDate: recentDate(3),
       applyLink: 'https://example.com/apply/4',
       logo: null,
       skills: ['Node.js', 'MongoDB', 'Express', 'Docker'],
@@ -279,7 +283,7 @@ export function getMockJobs() {
       description: 'Frontend Developer with Vue.js experience. HTML, CSS, JavaScript required. Join our growing team.',
       jobType: 'Full-time',
       workMode: 'Hybrid',
-      postedDate: new Date(Date.now() - 345600000).toISOString(),
+      postedDate: recentDate(4),
       applyLink: 'https://example.com/apply/5',
       logo: null,
       skills: ['Vue.js', 'JavaScript', 'HTML', 'CSS'],
@@ -293,7 +297,7 @@ export function getMockJobs() {
       description: 'DevOps Engineer with AWS and Kubernetes experience. CI/CD pipeline management and infrastructure as code.',
       jobType: 'Full-time',
       workMode: 'Remote',
-      postedDate: new Date(Date.now() - 432000000).toISOString(),
+      postedDate: recentDate(5),
       applyLink: 'https://example.com/apply/6',
       logo: null,
       skills: ['AWS', 'Kubernetes', 'Docker', 'Terraform'],
@@ -307,7 +311,7 @@ export function getMockJobs() {
       description: 'Python Developer for Machine Learning projects. Experience with TensorFlow and data processing required.',
       jobType: 'Full-time',
       workMode: 'Hybrid',
-      postedDate: new Date(Date.now() - 518400000).toISOString(),
+      postedDate: recentDate(6),
       applyLink: 'https://example.com/apply/7',
       logo: null,
       skills: ['Python', 'Machine Learning', 'TensorFlow', 'SQL'],
@@ -321,7 +325,7 @@ export function getMockJobs() {
       description: 'React Native developer for iOS and Android apps. Experience with mobile development best practices.',
       jobType: 'Contract',
       workMode: 'Remote',
-      postedDate: new Date(Date.now() - 604800000).toISOString(),
+      postedDate: recentDate(7),
       applyLink: 'https://example.com/apply/8',
       logo: null,
       skills: ['React Native', 'JavaScript', 'iOS', 'Android'],
@@ -335,7 +339,7 @@ export function getMockJobs() {
       description: 'Entry level Web Developer position. HTML, CSS, JavaScript basics required. Great learning opportunity.',
       jobType: 'Internship',
       workMode: 'On-site',
-      postedDate: new Date(Date.now() - 691200000).toISOString(),
+      postedDate: recentDate(8),
       applyLink: 'https://example.com/apply/9',
       logo: null,
       skills: ['HTML', 'CSS', 'JavaScript', 'Git'],
@@ -349,7 +353,7 @@ export function getMockJobs() {
       description: 'Data Engineer with SQL and Python skills. Build data pipelines and ETL processes.',
       jobType: 'Full-time',
       workMode: 'Remote',
-      postedDate: new Date(Date.now() - 777600000).toISOString(),
+      postedDate: recentDate(9),
       applyLink: 'https://example.com/apply/10',
       logo: null,
       skills: ['Python', 'SQL', 'Apache Spark', 'AWS'],

@@ -12,6 +12,8 @@ export default function HomePage() {
     hasResume, 
     filters, 
     setFilters, 
+    defaultLocation,
+    setDefaultLocation,
     bestMatches, 
     applyToJob 
   } = useStore();
@@ -117,6 +119,21 @@ export default function HomePage() {
                   {filter.label}
                 </button>
               ))}
+              <button
+                onClick={() => setDefaultLocation(filters.location)}
+                disabled={!filters.location?.trim()}
+                className="px-4 py-2 rounded-full bg-white text-gray-700 border border-gray-200 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Save location default
+              </button>
+              {defaultLocation && (
+                <button
+                  onClick={() => setDefaultLocation('')}
+                  className="px-4 py-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  Clear default: {defaultLocation}
+                </button>
+              )}
             </div>
           </div>
         </div>

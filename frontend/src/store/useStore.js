@@ -9,12 +9,16 @@ function hasCachedResume(userId) {
   return Boolean(userId && localStorage.getItem(`job_matcher_resume_uploaded_${userId}`) === 'true');
 }
 
-function buildQueryParams(filters, userId) {
+function buildQueryParams(filters, userId, defaultLocation = '') {
   const params = new URLSearchParams();
+  const effectiveFilters = {
+    ...filters,
+    location: filters.location || defaultLocation,
+  };
 
   if (userId) params.set('userId', userId);
 
-  Object.entries(filters).forEach(([key, value]) => {
+  Object.entries(effectiveFilters).forEach(([key, value]) => {
     if (Array.isArray(value)) {
       if (value.length) params.set(key, value.join(','));
       return;
@@ -29,10 +33,12 @@ function buildQueryParams(filters, userId) {
 }
 
 const initialUserId = localStorage.getItem('job_matcher_userid') || localStorage.getItem('userId') || null;
+const initialDefaultLocation = localStorage.getItem('job_matcher_default_location') || '';
 
 export const useStore = create((set, get) => ({
   userId: initialUserId,
   userName: localStorage.getItem('job_matcher_username') || null,
+  defaultLocation: initialDefaultLocation,
 
   hasResume: false,
   resumeData: null,
@@ -43,7 +49,7 @@ export const useStore = create((set, get) => ({
   loading: false,
   filters: {
     query: '',
-    location: '',
+    location: initialDefaultLocation,
     jobType: '',
     workMode: '',
     datePosted: '',
@@ -110,11 +116,11 @@ export const useStore = create((set, get) => ({
   },
 
   fetchJobs: async () => {
-    const { userId, filters } = get();
+    const { userId, filters, defaultLocation } = get();
     set({ loading: true });
 
     try {
-      const params = buildQueryParams(filters, userId);
+      const params = buildQueryParams(filters, userId, defaultLocation);
       const response = await api.get(`/jobs?${params}`);
       set({ jobs: response.data.jobs, loading: false });
     } catch (error) {
@@ -124,14 +130,16 @@ export const useStore = create((set, get) => ({
   },
 
   fetchBestMatches: async () => {
-    const { userId } = get();
+    const { userId, filters, defaultLocation } = get();
     if (!userId) {
       set({ bestMatches: [] });
       return;
     }
 
     try {
-      const response = await api.get(`/jobs/best-matches/${userId}`);
+      const params = buildQueryParams({ location: filters.location }, null, defaultLocation);
+      const queryString = params.toString();
+      const response = await api.get(`/jobs/best-matches/${userId}${queryString ? `?${queryString}` : ''}`);
       set({ bestMatches: response.data.bestMatches });
     } catch (error) {
       console.error('Failed to fetch best matches:', error);
@@ -141,6 +149,27 @@ export const useStore = create((set, get) => ({
   setFilters: (newFilters) => {
     set((state) => ({ filters: { ...state.filters, ...newFilters } }));
     get().fetchJobs();
+  },
+
+  setDefaultLocation: (location) => {
+    const nextLocation = String(location || '').trim();
+
+    if (nextLocation) {
+      localStorage.setItem('job_matcher_default_location', nextLocation);
+    } else {
+      localStorage.removeItem('job_matcher_default_location');
+    }
+
+    set((state) => ({
+      defaultLocation: nextLocation,
+      filters: {
+        ...state.filters,
+        location: nextLocation ? state.filters.location || nextLocation : state.filters.location === state.defaultLocation ? '' : state.filters.location,
+      },
+    }));
+
+    get().fetchJobs();
+    get().fetchBestMatches();
   },
 
   applyToJob: (job) => {
