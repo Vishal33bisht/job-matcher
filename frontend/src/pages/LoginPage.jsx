@@ -6,13 +6,16 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const setUserId = useStore((state) => state.setUserId);
 
+  const getStableUserId = (value) => {
+    const normalizedName = value.toLowerCase().trim();
+    return `user_${btoa(normalizedName).replace(/=+$/g, '').replace(/\+/g, '-').replace(/\//g, '_')}`;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) return;
     
-    // Generate a consistent ID based on name or random
-    const mockId = `user_${name.toLowerCase().replace(/\s+/g, '_')}_${Math.floor(Math.random() * 1000)}`;
-    setUserId(mockId, name);
+    setUserId(getStableUserId(name), name);
   };
 
   return (

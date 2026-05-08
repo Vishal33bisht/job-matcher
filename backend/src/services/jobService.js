@@ -192,6 +192,48 @@ export function getMockJobs() {
 
   return [
     {
+      id: 'creator-1',
+      title: 'Content Creator',
+      company: 'Delhi Digital Studio',
+      location: 'Delhi, India',
+      description: 'Content Creator needed to plan social media calendars, write short-form scripts, create reels, edit posts, and track engagement across Instagram, YouTube, and LinkedIn.',
+      jobType: 'Full-time',
+      workMode: 'Hybrid',
+      postedDate: recentDate(0),
+      applyLink: 'https://example.com/apply/creator-1',
+      logo: null,
+      skills: ['Content Creation', 'Social Media', 'Copywriting', 'Video Editing'],
+      salary: '$45,000 - $65,000'
+    },
+    {
+      id: 'creator-2',
+      title: 'Social Media Content Specialist',
+      company: 'BrandPulse India',
+      location: 'Delhi, India',
+      description: 'Create social content for campaigns, write captions, coordinate shoots, manage creator briefs, and report on audience growth and engagement metrics.',
+      jobType: 'Full-time',
+      workMode: 'On-site',
+      postedDate: recentDate(1),
+      applyLink: 'https://example.com/apply/creator-2',
+      logo: null,
+      skills: ['Social Media', 'Content Strategy', 'Copywriting', 'Analytics'],
+      salary: '$42,000 - $62,000'
+    },
+    {
+      id: 'creator-3',
+      title: 'Video Content Creator',
+      company: 'CreatorLab',
+      location: 'New Delhi, India',
+      description: 'Video Content Creator role focused on scripting, shooting, editing short-form videos, publishing content, and experimenting with trends for brand channels.',
+      jobType: 'Contract',
+      workMode: 'Remote',
+      postedDate: recentDate(2),
+      applyLink: 'https://example.com/apply/creator-3',
+      logo: null,
+      skills: ['Video Editing', 'Content Creation', 'YouTube', 'Instagram'],
+      salary: '$40,000 - $60,000'
+    },
+    {
       id: 'support-1',
       title: 'Technical Support Specialist',
       company: 'HelpDesk Pro',

@@ -34,6 +34,7 @@ function buildQueryParams(filters, userId, defaultLocation = '') {
 
 const initialUserId = localStorage.getItem('job_matcher_userid') || localStorage.getItem('userId') || null;
 const initialDefaultLocation = localStorage.getItem('job_matcher_default_location') || '';
+let fetchJobsRequestId = 0;
 
 export const useStore = create((set, get) => ({
   userId: initialUserId,
@@ -117,14 +118,18 @@ export const useStore = create((set, get) => ({
 
   fetchJobs: async () => {
     const { userId, filters, defaultLocation } = get();
+    const requestId = fetchJobsRequestId + 1;
+    fetchJobsRequestId = requestId;
     set({ loading: true });
 
     try {
       const params = buildQueryParams(filters, userId, defaultLocation);
       const response = await api.get(`/jobs?${params}`);
+      if (requestId !== fetchJobsRequestId) return;
       set({ jobs: response.data.jobs, loading: false });
     } catch (error) {
       console.error('Failed to fetch jobs:', error);
+      if (requestId !== fetchJobsRequestId) return;
       set({ loading: false });
     }
   },

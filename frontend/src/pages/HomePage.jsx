@@ -30,6 +30,7 @@ export default function HomePage() {
     if (score >= 60) return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     return 'bg-gray-100 text-gray-600 border-gray-200';
   };
+  const showBestMatches = hasResume && !filters.query?.trim() && bestMatches.length > 0;
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -194,7 +195,7 @@ export default function HomePage() {
         </div>
 
         {/* Best Matches Section */}
-        {hasResume && bestMatches.length > 0 && (
+        {showBestMatches && (
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg">
