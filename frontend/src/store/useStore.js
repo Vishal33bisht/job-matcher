@@ -1,8 +1,16 @@
 import { create } from 'zustand';
 import api from '../services/api';
 
-function normalizeResumeResponse(payload) {
-  return payload?.resume || payload?.data || payload;
+function normalizeResumeResponse(payload, fallbackFile) {
+  const resume = payload?.resume || payload;
+
+  if (!resume) return resume;
+
+  return {
+    ...resume,
+    fileName: resume.fileName || fallbackFile?.name,
+    uploadedAt: resume.uploadedAt || new Date().toISOString(),
+  };
 }
 
 function hasCachedResume(userId) {
@@ -93,7 +101,7 @@ export const useStore = create((set, get) => ({
 
       localStorage.setItem(`job_matcher_resume_uploaded_${userId}`, 'true');
       set({ hasResume: true, resumeData: resume, showResumeModal: false });
-    } catch (error) {
+    } catch {
       localStorage.removeItem(`job_matcher_resume_uploaded_${userId}`);
       set({ hasResume: false, showResumeModal: true });
     }
@@ -111,7 +119,7 @@ export const useStore = create((set, get) => ({
     });
 
     localStorage.setItem(`job_matcher_resume_uploaded_${userId}`, 'true');
-    set({ hasResume: true, resumeData: normalizeResumeResponse(response.data), showResumeModal: false });
+    set({ hasResume: true, resumeData: normalizeResumeResponse(response.data, file), showResumeModal: false });
     get().fetchJobs();
     get().fetchBestMatches();
   },

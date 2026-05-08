@@ -4,8 +4,9 @@ import { useStore } from '../store/useStore';
 export default function ResumeStatus() {
   const { hasResume, resumeData, uploadResume } = useStore();
   const skills = resumeData?.parsed?.skills || resumeData?.skills || resumeData?.data?.skills || [];
-  const uploadedAt = resumeData?.uploadedAt
-    ? new Date(resumeData.uploadedAt).toLocaleDateString()
+  const uploadedDate = resumeData?.uploadedAt ? new Date(resumeData.uploadedAt) : null;
+  const uploadedAt = uploadedDate && !Number.isNaN(uploadedDate.getTime())
+    ? uploadedDate.toLocaleDateString()
     : 'just now';
 
   const handleFileChange = async (e) => {
@@ -25,7 +26,7 @@ export default function ResumeStatus() {
           <div>
             <p className="font-medium text-gray-900">Resume Uploaded</p>
             <p className="text-sm text-gray-500">
-              {resumeData?.fileName || 'resume.pdf'} - Uploaded {uploadedAt}
+              {resumeData?.fileName || 'Resume'} &bull; Uploaded {uploadedAt}
             </p>
           </div>
         </div>
@@ -36,6 +37,9 @@ export default function ResumeStatus() {
           <input
             type="file"
             accept=".pdf,.txt"
+            onClick={(e) => {
+              e.target.value = '';
+            }}
             onChange={handleFileChange}
             className="hidden"
           />

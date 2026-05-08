@@ -160,10 +160,10 @@ function filterJobs(jobs, filters = {}) {
 function matchesQuery(searchableText, query) {
   if (searchableText.includes(query)) return true;
 
-  const tokens = query
+  const tokens = [...new Set(query
     .split(/\s+/)
     .map((token) => token.trim())
-    .filter((token) => token.length > 2);
+    .filter((token) => token.length > 2))];
 
   if (!tokens.length) return true;
 
@@ -178,7 +178,11 @@ function extractSkills(description) {
     'Git', 'REST API', 'GraphQL', 'HTML', 'CSS', 'Vue.js', 'Angular',
     'Machine Learning', 'AI', 'Figma', 'UI/UX', 'Agile', 'Scrum',
     'Technical Support', 'Troubleshooting', 'Help Desk', 'Service Desk',
-    'Active Directory', 'Windows', 'Networking', 'Hardware', 'Incident'
+    'Active Directory', 'Windows', 'Networking', 'Hardware', 'Incident',
+    'Content Creation', 'Content Strategy', 'Social Media', 'Copywriting',
+    'Video Editing', 'Instagram', 'YouTube', 'Analytics', 'SEO',
+    'Data Science', 'Data Analysis', 'Pandas', 'NumPy', 'Tableau',
+    'Power BI', 'Statistics', 'ETL', 'Apache Spark'
   ];
   
   const found = skillKeywords.filter(skill => 
@@ -232,6 +236,34 @@ export function getMockJobs() {
       logo: null,
       skills: ['Video Editing', 'Content Creation', 'YouTube', 'Instagram'],
       salary: '$40,000 - $60,000'
+    },
+    {
+      id: 'data-science-1',
+      title: 'Data Scientist',
+      company: 'InsightWorks',
+      location: 'Bengaluru, India',
+      description: 'Data Scientist needed to build machine learning models, analyze product data, run experiments, and communicate insights using Python, Pandas, statistics, and SQL.',
+      jobType: 'Full-time',
+      workMode: 'Hybrid',
+      postedDate: recentDate(3),
+      applyLink: 'https://example.com/apply/data-science-1',
+      logo: null,
+      skills: ['Data Science', 'Python', 'Machine Learning', 'Statistics', 'SQL'],
+      salary: '$80,000 - $120,000'
+    },
+    {
+      id: 'data-analyst-1',
+      title: 'Data Analyst',
+      company: 'MetricHive',
+      location: 'Remote',
+      description: 'Data Analyst role focused on SQL reporting, dashboarding, data analysis, Tableau, Power BI, and translating business questions into clear insights.',
+      jobType: 'Full-time',
+      workMode: 'Remote',
+      postedDate: recentDate(4),
+      applyLink: 'https://example.com/apply/data-analyst-1',
+      logo: null,
+      skills: ['Data Analysis', 'SQL', 'Tableau', 'Power BI', 'Analytics'],
+      salary: '$65,000 - $95,000'
     },
     {
       id: 'support-1',

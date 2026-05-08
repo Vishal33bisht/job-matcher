@@ -60,18 +60,23 @@ export async function calculateMatchScore(resumeText, job) {
 
 function getMockMatchScore(resumeText, job) {
   const resumeLower = resumeText?.toLowerCase() || '';
+  const jobText = `${job.title || ''} ${job.description || ''} ${(job.skills || []).join(' ')}`.toLowerCase();
   const matchedSkills = job.skills?.filter(skill => 
     resumeLower.includes(skill.toLowerCase())
   ) || [];
-  
-  // FIX: Generate a random base score between 30 and 60
-  const randomBase = 30 + Math.floor(Math.random() * 30);
-  
-  // Add 10 points for every matching skill
-  const skillBonus = matchedSkills.length * 10;
-
-  // Calculate total (capped at 98%)
-  const score = Math.min(98, randomBase + skillBonus);
+  const resumeTokens = new Set(
+    resumeLower
+      .split(/[^a-z0-9+#.]+/i)
+      .map((token) => token.trim())
+      .filter((token) => token.length > 2)
+  );
+  const sharedKeywordCount = [...resumeTokens].filter((token) => jobText.includes(token)).length;
+  const titleMatch = String(job.title || '')
+    .toLowerCase()
+    .split(/[^a-z0-9+#.]+/i)
+    .filter((token) => token.length > 2)
+    .some((token) => resumeTokens.has(token));
+  const score = Math.min(98, 20 + matchedSkills.length * 15 + Math.min(sharedKeywordCount, 8) * 4 + (titleMatch ? 15 : 0));
   
   return {
     score,
@@ -232,6 +237,7 @@ export async function parseResume(text) {
           "name": "",
           "email": "",
           "skills": [],
+          "targetRoles": [],
           "experience": [],
           "education": [],
           "summary": ""
@@ -256,18 +262,44 @@ function getMockParsedResume(text) {
     'JavaScript', 'React', 'Node.js', 'Python', 'Java', 'TypeScript',
     'AWS', 'Docker', 'SQL', 'MongoDB', 'Vue.js', 'Angular', 'Git',
     'HTML', 'CSS', 'Figma', 'Machine Learning', 'Express', 'Next.js',
-    'GraphQL', 'REST API', 'Kubernetes', 'PostgreSQL', 'Redis'
+    'GraphQL', 'REST API', 'Kubernetes', 'PostgreSQL', 'Redis',
+    'Content Creation', 'Content Strategy', 'Social Media', 'Copywriting',
+    'Video Editing', 'Instagram', 'YouTube', 'Analytics', 'SEO',
+    'Data Science', 'Data Analysis', 'Pandas', 'NumPy', 'Tableau',
+    'Power BI', 'Statistics', 'ETL', 'Apache Spark', 'Technical Support',
+    'Troubleshooting', 'Help Desk', 'Service Desk', 'Active Directory'
+  ];
+  const roleSignals = [
+    { role: 'Content Creator', terms: ['content creator', 'content creation', 'social media', 'instagram', 'youtube', 'reels', 'copywriting', 'video editing'] },
+    { role: 'Data Scientist', terms: ['data scientist', 'data science', 'machine learning', 'statistics', 'pandas', 'numpy'] },
+    { role: 'Data Analyst', terms: ['data analyst', 'data analysis', 'tableau', 'power bi', 'analytics', 'sql'] },
+    { role: 'Data Engineer', terms: ['data engineer', 'etl', 'spark', 'data pipeline', 'warehouse'] },
+    { role: 'Technical Support Specialist', terms: ['technical support', 'it support', 'help desk', 'service desk', 'troubleshooting'] },
+    { role: 'Frontend Developer', terms: ['frontend', 'react', 'vue', 'angular', 'html', 'css', 'javascript'] },
+    { role: 'Backend Developer', terms: ['backend', 'node.js', 'express', 'django', 'api', 'mongodb', 'postgresql'] },
+    { role: 'UX Designer', terms: ['ux', 'ui/ux', 'figma', 'wireframe', 'prototype'] },
+    { role: 'Digital Marketing Specialist', terms: ['digital marketing', 'seo', 'sem', 'campaigns', 'email marketing'] }
   ];
   
   const textLower = String(text || '').toLowerCase();
   const foundSkills = skillKeywords.filter(skill => 
     textLower.includes(skill.toLowerCase())
   );
+  const targetRoles = roleSignals
+    .map((role) => ({
+      ...role,
+      score: role.terms.filter((term) => textLower.includes(term)).length
+    }))
+    .filter((role) => role.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 2)
+    .map((role) => role.role);
 
   return {
     name: 'User',
     email: '',
-    skills: foundSkills.length > 0 ? foundSkills : ['JavaScript', 'React'],
+    skills: foundSkills,
+    targetRoles,
     experience: [],
     education: [],
     summary: 'Resume parsed successfully'

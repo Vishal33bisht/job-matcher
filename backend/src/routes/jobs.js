@@ -2,8 +2,43 @@ import { fetchJobs } from '../services/jobService.js';
 import { calculateMatchScore } from '../services/aiService.js';
 import { createHash } from 'node:crypto';
 
-const DEFAULT_RESUME_JOB_QUERY = 'technical support specialist';
-const MATCH_SCORE_CACHE_VERSION = 'v1';
+const DEFAULT_RESUME_JOB_QUERY = 'entry level jobs';
+const MATCH_SCORE_CACHE_VERSION = 'v2';
+
+const ROLE_SIGNALS = [
+  {
+    query: 'content creator social media',
+    terms: ['content creator', 'content creation', 'social media', 'instagram', 'youtube', 'reels', 'copywriting', 'video editing', 'creator', 'content strategy']
+  },
+  {
+    query: 'data scientist data analyst',
+    terms: ['data science', 'data scientist', 'data analyst', 'machine learning', 'statistics', 'pandas', 'numpy', 'tableau', 'power bi', 'data visualization']
+  },
+  {
+    query: 'data engineer',
+    terms: ['data engineer', 'etl', 'spark', 'data pipeline', 'big data', 'warehouse', 'airflow']
+  },
+  {
+    query: 'technical support specialist',
+    terms: ['technical support', 'it support', 'help desk', 'service desk', 'troubleshooting', 'active directory', 'incident']
+  },
+  {
+    query: 'frontend developer',
+    terms: ['frontend', 'front end', 'react', 'vue', 'angular', 'html', 'css', 'javascript']
+  },
+  {
+    query: 'backend developer',
+    terms: ['backend', 'node.js', 'express', 'django', 'api', 'mongodb', 'postgresql']
+  },
+  {
+    query: 'ux designer ui designer',
+    terms: ['ux', 'ui/ux', 'figma', 'user experience', 'wireframe', 'prototype', 'designer']
+  },
+  {
+    query: 'digital marketing specialist',
+    terms: ['digital marketing', 'seo', 'sem', 'google ads', 'campaigns', 'email marketing', 'marketing']
+  }
+];
 
 function parseStoredJson(data, fallback) {
   if (!data) return fallback;
@@ -22,6 +57,22 @@ function getResumeText(resume) {
 
 function getResumeSkills(resume) {
   return resume?.parsed?.skills || resume?.skills || [];
+}
+
+function getResumeSearchText(resume) {
+  const parsedExperience = resume?.parsed?.experience || resume?.experience || [];
+  const experienceText = parsedExperience
+    .map((item) => (typeof item === 'string' ? item : Object.values(item || {}).join(' ')))
+    .join(' ');
+
+  return [
+    getResumeText(resume),
+    resume?.parsed?.summary,
+    resume?.summary,
+    getResumeSkills(resume).join(' '),
+    (resume?.parsed?.targetRoles || resume?.targetRoles || []).join(' '),
+    experienceText
+  ].join(' ').toLowerCase();
 }
 
 function cleanResumeLine(line) {
@@ -64,6 +115,10 @@ function extractJobTitleNearSections(resumeText) {
 }
 
 function buildResumeJobQuery(resume) {
+  const parsedRoles = resume?.parsed?.targetRoles || resume?.targetRoles || [];
+  const parsedRole = parsedRoles.find((role) => String(role || '').trim());
+  if (parsedRole) return cleanResumeLine(parsedRole);
+
   const resumeText = getResumeText(resume);
   const titleFromResume = extractJobTitleNearSections(resumeText);
   if (titleFromResume) return titleFromResume;
@@ -75,8 +130,19 @@ function buildResumeJobQuery(resume) {
 
   if (titleFromParsedExperience) return cleanResumeLine(titleFromParsedExperience);
 
-  const skills = getResumeSkills(resume).slice(0, 3).join(' ');
-  return skills ? `${DEFAULT_RESUME_JOB_QUERY} ${skills}` : DEFAULT_RESUME_JOB_QUERY;
+  const searchText = getResumeSearchText(resume);
+  const matchedRole = ROLE_SIGNALS
+    .map((role) => ({
+      ...role,
+      score: role.terms.filter((term) => searchText.includes(term)).length
+    }))
+    .sort((a, b) => b.score - a.score)
+    .find((role) => role.score > 0);
+
+  if (matchedRole) return matchedRole.query;
+
+  const skills = getResumeSkills(resume).slice(0, 4).join(' ');
+  return skills || DEFAULT_RESUME_JOB_QUERY;
 }
 
 function hashText(value) {
@@ -136,7 +202,7 @@ export default async function jobRoutes(fastify) {
       const jobFilters = {
         ...filters,
         query: hasExplicitQuery ? filters.query : (resume ? buildResumeJobQuery(resume) : filters.query),
-        skipQueryFilter: !hasExplicitQuery,
+        skipQueryFilter: false,
       };
 
       let jobs = await fetchJobs(jobFilters);
@@ -183,7 +249,7 @@ export default async function jobRoutes(fastify) {
       const jobs = await fetchJobs({
         query: buildResumeJobQuery(resume),
         location: request.query.location,
-        skipQueryFilter: true,
+        skipQueryFilter: false,
       });
       
       const scoredJobs = await addMatchScores(fastify, jobs.slice(0, 20), resumeText);
